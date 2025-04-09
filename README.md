@@ -8,7 +8,7 @@ This project analyzes and forecasts monthly timber prices for different tree spe
 ## Analysis workflow
 1. Data cleaning
    - Extract data from [LUKE](https://statdb.luke.fi/PxWeb/pxweb/en/LUKE/LUKE__04%20Metsa__04%20Talous__02%20Teollisuuspuun%20kauppa__02%20Kuukausitilastot/01a_Kantohinnat_kk.px/?rxid=dc711a9e-de6d-454b-82c2-74ff79a3a5e0)
-   - - Handle missing values and removed irrelevant columns
+   - Handle missing values and removed irrelevant columns
 2. Exploratory Data Analysis (EDA)
    - Visualize monthly price trends for pine, spruce, and birch logs
    - Conduct seasonal decomposition to inspect trend and seasonality patterns
