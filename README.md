@@ -47,4 +47,4 @@ This project analyzes and forecasts monthly timber prices for different tree spe
      **Birch logs**
    - Cross-validation RMSE comparison chart
      ![Cross validation RMSE](figures/CV_sarima.png)
-     **Performance comparison across 3 folds using RMSE
+     **Performance comparison across 3 folds using RMSE**
