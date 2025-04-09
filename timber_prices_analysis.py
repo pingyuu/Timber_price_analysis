@@ -1,15 +1,10 @@
-import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-import statsmodels.tsa.stattools as tsa
 from statsmodels.tsa.stattools import adfuller, kpss
 from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from xgboost import XGBRegressor
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.preprocessing import LabelEncoder
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
