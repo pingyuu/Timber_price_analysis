@@ -37,7 +37,7 @@ This project analyzes and forecasts monthly timber prices for different tree spe
      **Birch logs**
    - ACF / PACF plots
      ![ACF and PACF](figures/ACF_PACF.png)
-     **Used to determine SARIMA model parameters
+     **Used to determine SARIMA model parameters**
    - SARIMA forecasts with confidence bands (12 months)
      ![SARIMA forecasting for pine logs](figures/sarima_pine.png)
      **Pine logs**
