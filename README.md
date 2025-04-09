@@ -30,4 +30,3 @@ This project analyzes and forecasts monthly timber prices for different tree spe
    - ACF / PACF plots
    - SARIMA forecasts with confidence bands
    - Cross-validation RMSE comparison chart
-
