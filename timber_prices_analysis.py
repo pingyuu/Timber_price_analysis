@@ -357,7 +357,7 @@ print("Pine logs CV RMSE:", pine_rmse_cv)
 
 spruce_rmse_cv = rolling_cv_rmse(series=log_diff["Spruce logs"],
                                order=(1, 1, 1),
-                               seasonal_order=(1, 1, 1, 12),
+                               seasonal_order=(2, 1, 1, 12),
                                forecast_horizon=3,
                                folds=3)
 print("Spruce logs CV RMSE:", spruce_rmse_cv)
@@ -437,7 +437,7 @@ plt.grid(True, linestyle='--', alpha=0.5)
 # Spruce logs
 model_spruce = SARIMAX(log_diff["Spruce logs"],
                      order=(1, 1, 1),
-                     seasonal_order=(1, 1, 1, 12),
+                     seasonal_order=(2, 1, 1, 12),
                      enforce_stationarity=False,
                      enforce_invertibility=False)
 fit_spruce = model_spruce.fit(disp=False)
