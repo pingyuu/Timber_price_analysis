@@ -14,16 +14,18 @@ This project analyzes and forecasts monthly timber prices for different tree spe
    - Conduct seasonal decomposition to inspect trend and seasonality patterns
 3. Stationary and transform datasets
    - Apply ADF and KPSS tests to confrim stationarity
-   - Go through log transformation and differencing (first or second order)
+   - Go through log transformation and first differencing 
 4. ACF and PACF visualization
-   - Create autocorrelation (ACF) and partial autocorrelation (PACF) plots to support SARIMA order selection
-5. Forecasting with SARIMA
-   - Build SARIMA models using 'pmdarima.auto_arima' with different seasonal cycles
-   - Forecaste next 12 months' timber prices for each tree species
-   - Visualize historical vs. predicte values with confidence intervals
+   - Create autocorrelation (ACF) and partial autocorrelation (PACF) plots 
+   - Idenfify candidate SARIMA model orders for each tree logs using ACF and PACF plots
+5. AIC and BIC evaluation
+   - Iterate over combinations of (p,d,q) and compute AIC and BIC to identify the best fitting model for each log.
+   - Select the model with the lowest AIC or BIC as the final model.
+   - Generate 12-month ahead forecasts using the best model for each log.
 6. Model evaluation
-   - Evaluate model performance with metrices: MAE (Mean Absolute Error), RMSE (Root Mean Squared Error), SMAPE (Symmetric Mean Absolute Percentage Error), and MASE (Mean Absolute Scaled Error)
-   - Perform time series cross-validation (3 folds) to assess model robustness
+   - Evaluate forecast accuracy using standard error metrics: Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE) for overall model performance.
+   - Perform rolling forecast origin cross-validation (3 folds) for each log to assess model robstness
+   - Compare models across species based on mean and standard deviation of CV RMSE
 7. Visualizations and results
    - Time series line charts by species
      ![Standing sales trend](figures/Standing_sales_trend.png)
