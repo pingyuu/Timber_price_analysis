@@ -1,10 +1,6 @@
 # Forestry Project: Forecasting Timber Prices in Finland Using SARIMA 
-## Project Goal
-This project analyzes and forecasts monthly timber prices for different tree species in Finland using SARIMA techniques. 
-## Tools and Skills
-- Python (pandas, numpy, matplotlib, seaborn, statsmodels)
-- Time series modeling (SARIMA)
-- Data wrangling and visualization
+## Abstract
+This project analyzes monthly stumpage prices of pine, spruce, and birch logs in Finland (1995–2025). After transforming and validating stationarity, SARIMA models were used to forecast timber prices. Model accuracy was assessed with MAE, RMSE, and rolling cross validation. Results show pine and spruce prices are more predictable than birch, offering insights into market dynamics.
 ## Analysis workflow
 ### 1. Data overview and preparation
 
@@ -34,13 +30,14 @@ Figure 1. The trend of timber prices over time by specides
 ![Seasonal Decomposition - Pine](figures/Seasonal_decomposition_pine.png)
 
 Figure 2. Seasonal decomposition of Pine logs 
+
 ![Seasonal Decomposition - Spruce](figures/Seasonal_decomposition_spruce.png)
 
 Figure 3. Seasonal decomposition of Spruce logs
+
 ![Seasonal Decomposition - Birch](figures/Seasonal_decomposition_birch.png)
 
 Figure 4. Seasonal decomposition of Birch logs
-
 ### 3. Stationary and transform datasets
 Stationarity of each log series is assessed using both ADF and KPSS tests. The ADF p-values are all greater than 0.05, while KPSS p-values are all below 0.05, that indicating non-stationarity. Therefore, log transformation and first order differencing are applied to stablize variance and remove trends before time series modeling.
 
@@ -108,25 +105,37 @@ Table 6. Results of AIC and BIC for birch logs with different orders
 |  2 | (1, 1, 0) | (0, 1, 1, 12)    | -1609.97 | -1598.53 |
 |  3 | (1, 1, 0) | (1, 1, 1, 12)    | -1607.71 | -1592.45 |
 
+### 6. Model evaluation
+The evaluation results are consistent across both direct error evaluation and rolling forecast cross validation. Pine and Spruce logs exhibited comparable and relatively low forecasting errors, as indicated by both RMSE and MAE metrics. Pine logs had the lowest MAE (0.0086), while Spruce logs had the lowest CV RMSE mean (0.0051). Birch logs, on the other hand, showed the highest error levels and variability, suggesting more uncertainty in forecasting their prices.
 
-7. Model evaluation
-   - Evaluate forecast accuracy using standard error metrics: Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE) for overall model performance.
-   - Perform rolling forecast origin cross-validation (3 folds) for each log to assess model robstness
-   - Compare models across species based on mean and standard deviation of CV RMSE
-8. Visualizations and results
-   - Time series line charts by species
+Table 7. MAE and RMSE results of SARIMA model
+|    | Tree Species   |        MAE |      RMSE |
+|----|----------------|------------|-----------|
+|  0 | Pine logs      | 0.00863059 | 0.0122147 |
+|  1 | Spruce logs    | 0.00835632 | 0.0122657 |
+|  2 | Birch logs     | 0.00990322 | 0.0128179 |
 
-   - Seasonal decomposition plots
+Table 8. RMSE results of cross validatation with fold = 3
+|    | Tree Species   |   CV RMSE Fold 1 |   CV RMSE Fold 2 |   CV RMSE Fold 3 |   CV RMSE Mean |   CV RMSE Std |
+|----|----------------|------------------|------------------|------------------|----------------|---------------|
+|  0 | Pine logs      |       0.00761214 |       0.00430703 |       0.00690652 |     0.00627523 |    0.00142123 |
+|  1 | Spruce logs    |       0.0066258  |       0.00247351 |       0.00620317 |     0.00510083 |    0.00186579 |
+|  2 | Birch logs     |       0.0278146  |       0.0139254  |       0.0124439  |     0.0180613  |    0.00692312 |
 
-   - ACF / PACF plots
+![Cross validation RMSE](figures/CV_sarima.png)
 
-   - SARIMA forecasts with confidence bands (12 months)
-     ![SARIMA forecasting for pine logs](figures/sarima_pine.png)
-     **Pine logs**
-     ![SARIMA forecasting for spruce logs](figures/sarima_spruce.png)
-     **Spruce logs**
-     ![SARIMA forecasting for birch logs](figures/sarima_birch.png)
-     **Birch logs**
-   - Cross-validation RMSE comparison chart
-     ![Cross validation RMSE](figures/CV_sarima.png)
-     **Performance comparison across 3 folds using RMSE**
+Figure 6. Cross validation RMSE results with standard deviation 
+### 7. Forecasting visualization
+The 12-month forecasts based on selected SARIMA models reveal stable price trends for Pine and Spruce logs, with relatively narrow confidence intervals. Birch logs show greater volatility and uncertainty in prediction, as reflected by the wider confidence band. These patterns are consistent with earlier model evaluation results, confirming the varying levels of predictability among species.
+
+![SARIMA forecasting for pine logs](figures/sarima_pine.png)
+
+Figure 7. Prediction of Pine logs (12 months) with SARIMA (1,1,1)(1,1,1,12)
+     
+![SARIMA forecasting for spruce logs](figures/sarima_spruce.png)
+
+Figure 8. Prediction of Spruce logs (12 months) with SARIMA (1,1,1)(2,1,1,12)
+
+![SARIMA forecasting for birch logs](figures/sarima_birch.png)
+
+Figure 9. Prediction of Birch logs (12 months) with SARIMA (1,1,0)(0,1,1,12)
