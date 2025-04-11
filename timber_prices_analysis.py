@@ -4,12 +4,12 @@ import seaborn as sns
 import numpy as np
 import warnings
 import math
-from statsmodels.tsa.stattools import adfuller, kpss
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from statsmodels.tsa.seasonal import seasonal_decompose
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from tabulate import tabulate
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import adfuller, kpss
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # Read "monthlystumpage_standingsales" excel file
 standing_sales = pd.read_excel("monthlystumpage_standingsales.xlsx", skiprows=2)
@@ -25,7 +25,7 @@ standing_sales["Time"] = pd.to_datetime(standing_sales["Time"], format="%Y/%m")
 ##----------------- EDA analysis for standing sales---------------------## 
 # Check summary statistics
 statistics_standing_sales = standing_sales.describe()
-print(statistics_standing_sales)
+print(tabulate(statistics_standing_sales, headers='keys', tablefmt='github'))
 
 # Time series visualization
 plt.figure(figsize=(10, 5))
