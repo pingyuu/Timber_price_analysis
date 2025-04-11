@@ -2,36 +2,32 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import warnings
+import math
 from statsmodels.tsa.stattools import adfuller, kpss
-from pmdarima import auto_arima
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from tabulate import tabulate
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-# Read stumpage prices file
-stumpage_prices = pd.read_excel("monthlyStumpagePrices.xlsx", skiprows=2)
+# Read "monthlystumpage_standingsales" excel file
+standing_sales = pd.read_excel("monthlystumpage_standingsales.xlsx", skiprows=2)
 
-# Clean datasets
-# Conversions to "Time" column and fillings missing values to 0
-stumpage_prices["Time"] = pd.to_datetime(stumpage_prices["Time"], format="%Y/%m")
-stumpage_prices.iloc[:, 0] = stumpage_prices.iloc[:, 0].ffill()
-stumpage_prices = stumpage_prices.fillna(0)
-stumpage_prices.iloc[:, -3:] = stumpage_prices.iloc[:, -3:].apply(pd.to_numeric, errors="coerce")
+##----------------- CLEAN DATASETS----------------------------------##
+# Conduct "Missing" values
+standing_sales.isnull().sum() # no missing values
+standing_sales.dtypes
 
-# Filter out "Region" column
-stumpage_prices = stumpage_prices.drop(columns=["Region"])
+# Convert "Time" column to ensure time-series datasets
+standing_sales["Time"] = pd.to_datetime(standing_sales["Time"], format="%Y/%m")
 
-# Filter "Standing sales, total" in the "Felling method" column
-standing_sales = stumpage_prices[stumpage_prices["Felling method"] == "Standing sales, total"].reset_index(drop=True)
-standing_sales = standing_sales.drop(columns=["Felling method"])
-
-# EDA analysis for standing sales 
+##----------------- EDA analysis for standing sales---------------------## 
 # Check summary statistics
 statistics_standing_sales = standing_sales.describe()
 print(statistics_standing_sales)
 
 # Time series visualization
-plt.figure(figsize = (12,5))
 sns.lineplot(data=standing_sales, x = "Time", y = "Pine logs", label="Pine logs")
 sns.lineplot(data=standing_sales, x = "Time", y = "Spruce logs", label="Spruce logs")
 sns.lineplot(data=standing_sales, x = "Time", y = "Birch logs", label="Birch logs")
@@ -41,30 +37,39 @@ plt.ylabel("Price (€)")
 plt.legend()
 plt.grid(True)
 plt.tight_layout()
-plt.show()
 
 # Seasonal Decomposition
 # Create decomposition function
 def decompose_and_plot(series, time_index, title_prefix):
-    series.index = time_index  
+    series.index = time_index
     result = seasonal_decompose(series, model='additive', period=12)
 
-    plt.figure(figsize=(10, 6))
-    result.plot()
-    plt.suptitle(f"Seasonal Decomposition of {title_prefix} Stumpage Prices", fontsize=14)
-    plt.tight_layout()
-    plt.show()
+    fig, axes = plt.subplots(4, 1, figsize=(12, 8), sharex=True)
+    components = ['Observed', 'Trend', 'Seasonal', 'Residuals']
+    data = [result.observed, result.trend, result.seasonal, result.resid]
 
-# Decomposition for each log
+    for ax, comp, d in zip(axes, components, data):
+        if comp == 'Residuals':
+            ax.scatter(d.index, d, color='steelblue', s=10)  
+        else:
+            ax.plot(d, color='steelblue')  
+        ax.set_ylabel(comp, fontsize=11)
+        ax.grid(True, linestyle='--', alpha=0.6)
+        ax.set_title("")
+
+    axes[-1].set_xlabel("Time", fontsize=11)
+
+    plt.suptitle(f"Seasonal Decomposition of {title_prefix}", fontsize=14, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+
 for species in ["Pine logs", "Spruce logs", "Birch logs"]:
-    print(f"Decomposition for {species} ")
+    print(f"Decomposition for {species}")
     decompose_and_plot(standing_sales[species], standing_sales["Time"], species)
 
-# Test for stationary
-# Prepare the test results storage
+##-------------------------- Test stationary---------------------------##
 stationarity_results = []
 
-# Peform ADF and KPSS test for each log type
+# ADF and KPSS test 
 for log_type in ["Pine logs", "Spruce logs", "Birch logs"]:
     series = standing_sales[log_type].dropna()
     adf_result = adfuller(series, autolag = "AIC") # ADF Test
@@ -81,9 +86,8 @@ for log_type in ["Pine logs", "Spruce logs", "Birch logs"]:
         "ADF p-value": adf_p,
         "KPSS p-value": kpss_p})
 
-# Convert results to dataframe for display
 stationarity_df = pd.DataFrame(stationarity_results)
-print(stationarity_df)
+print(tabulate(stationarity_df, headers='keys', tablefmt='github'))
 
 # Apply log transformation and first differencing
 log_diff_values = pd.DataFrame()
@@ -98,7 +102,7 @@ log_diff_values["Time"] = standing_sales["Time"].iloc[1:].values
 
 log_diff_first = log_diff_values.reset_index(drop=True)
 
-# Re-run ADF and KPSS tests on the log-differenced data
+# Stationarity tests on first log-differenced data
 stationarity_result_log_first = []
 
 for log_type in ["Pine logs", "Spruce logs", "Birch logs"]:
@@ -120,52 +124,13 @@ for log_type in ["Pine logs", "Spruce logs", "Birch logs"]:
         "KPSS p-value": kpss_p_log_first})
 
 stationarity_result_log_first = pd.DataFrame(stationarity_result_log_first)
-print(stationarity_result_log_first)
+print(tabulate(stationarity_result_log_first, headers='keys', tablefmt='github'))
 
-# Only apply second differencing on log-transformed Birch logs
-birch_log = np.log(standing_sales["Birch logs"])
-birch_log_diff2 = birch_log.diff().diff().dropna()
-
-# Run ADF and KPSS tests again on the 2nd differences Birch logs
-adf_birch_2nd = adfuller(birch_log_diff2, autolag="AIC")[1]
-try:
-    kpss_birch_2nd = kpss(birch_log_diff2, regression="c", nlags="auto")
-    kpss_birch_2nd_p = kpss_birch_2nd[1]
-except:
-    kpss_birch_2nd = "Failed"
-
-# Print result
-birch_result = pd.DataFrame([{
-    "Log Type": "Birch logs (2nd diff)",
-    "ADF p-value": adf_birch_2nd,
-    "KPSS p-value": kpss_birch_2nd_p}])
-print(birch_result)
-
-# Create 2nd-order differenced birch log with Time
-birch_log_diff2_df = pd.DataFrame({
-    "Birch logs": birch_log_diff2.values,
-    "Time": standing_sales["Time"].iloc[2:].values  # shift by 2 for 2nd diff
-})
-
-# Ensure Time column is datetime format
-birch_log_diff2_df["Time"] = pd.to_datetime(birch_log_diff2_df["Time"])
-
-# Cut Pine & Spruce to match Birch length
-n = birch_log_diff2_df.shape[0]
-log_diff_trimmed = log_diff_first[["Pine logs", "Spruce logs"]].iloc[-n:].reset_index(drop=True)
-
-# Combine and align all logs with proper Time index
-log_diff = pd.concat([
-    log_diff_trimmed,
-    birch_log_diff2_df[["Birch logs"]].reset_index(drop=True),
-    birch_log_diff2_df[["Time"]].reset_index(drop=True)
-], axis=1)
-
-# Set Time as index (key step!)
+log_diff = log_diff_first 
 log_diff.set_index("Time", inplace=True)
 
-# ACF and PACF
-# Create ACF and PACF plots for each log type
+## ------------------------------ ACF and PACF-------------------------##
+# ACF and PACF 
 fig, axes = plt.subplots(3, 2, figsize=(14, 10))
 log_types = ["Pine logs", "Spruce logs", "Birch logs"]
 labels = ['a', 'b', 'c', 'd', 'e', 'f']
@@ -175,159 +140,352 @@ for i, col in enumerate(log_types):
     plot_pacf(log_diff[col], ax=axes[i][1], lags=36, title=f"({labels[i*2+1]}) PACF - {col}")
 
 plt.tight_layout()
-plt.show()
 
-#%%%% SARIMA mode forecast
+# Comments: Based on ACF and PACF figures to choose (p.d.q)(P, D, Q, s).
+# Pine: p=1,5,7; d=1, q =1,2; P=1,2
+# Spruce: p=1,7; d=1, q=1,2,7; P=2,3
+# Birch: p=0,1; d=1, q=0; P=0,1
+# D=1, s=12, Q=1
 
-#log_diff["Time"] = pd.to_datetime(log_diff["Time"])
-#log_diff.set_index("Time", inplace=True)
+## -------------------------- SARIMA mode forecast ---------------------##
+warnings.filterwarnings("ignore")
 
-# Forecast settings
+# Pine logs: p=1,5,7; d=1, q =1,2; P=1,2; D=1, s=12, Q=1
+# Define (p.d.q)(P, D, Q, s) values
+p_pine = [1,5,7]
+d_pine = 1
+q_pine = [1,2]
+P_pine = [1,2]
+D= 1
+Q =1
+s =12
+
+results_pine = []
+
+d= d_pine
+for p in p_pine:
+    for q in q_pine:
+        for P in P_pine:
+            try:
+                model = SARIMAX(log_diff["Pine logs"],
+                                order =(p,d,q),
+                                seasonal_order = (P,D,Q,s),
+                                enforce_stationarity = False,
+                                enforce_invertibility =False)
+                fit = model.fit(disp=False)
+                results_pine.append({"order": (p,d,q),
+                                     "seasonal_order": (P,D,Q,s),
+                                     "AIC": fit.aic,
+                                     "BIC": fit.bic})
+            except Exception as e:
+                results_pine.append({"order": (p,d,q),
+                                     "seasonal_order": (P,D,Q,s),
+                                     "AIC": np.nan,
+                                     "BIC": np.nan,
+                                     "Error": str(e)})
+                
+results_pine_df =pd.DataFrame(results_pine)
+print(tabulate(results_pine_df, headers="keys", tablefmt="github"))
+
+# Find the best model based on AIC and BIC (min values)
+best_aic_pine = results_pine_df.loc[results_pine_df["AIC"].idxmin()]
+best_bic_pine = results_pine_df.loc[results_pine_df["BIC"].idxmin()]
+
+print("Best model for Pine logs by AIC:")
+print(best_aic_pine)
+print("Best model for Pine logs by BIC:")
+print(best_bic_pine)
+
+# Spruce logs: p=1,7; d=1, q=1,2,7; P=2,3; D=1, s=12, Q=1
+# Define (p.d.q)(P, D, Q, s) values
+p_spruce = [1,7]
+d_spruce = 1
+q_spruce = [1,2,7]
+P_spruce = [2,3]
+D= 1
+Q =1
+s =12
+
+results_spruce = []
+
+d=d_spruce
+for p in p_spruce:
+    for q in q_spruce:
+        for P in P_spruce:
+            try:
+                model = SARIMAX(log_diff["Spruce logs"],
+                                order =(p,d,q),
+                                seasonal_order = (P,D,Q,s),
+                                enforce_stationarity = False,
+                                enforce_invertibility =False)
+                fit = model.fit(disp=False)
+                results_spruce.append({"order": (p,d,q),
+                                     "seasonal_order": (P,D,Q,s),
+                                     "AIC": fit.aic,
+                                     "BIC": fit.bic})
+            except Exception as e:
+                results_spruce.append({"order": (p,d,q),
+                                     "seasonal_order": (P,D,Q,s),
+                                     "AIC": np.nan,
+                                     "BIC": np.nan,
+                                     "Error": str(e)})
+results_spruce_df =pd.DataFrame(results_spruce)
+print(tabulate(results_spruce_df, headers="keys", tablefmt="github"))
+
+# Find the best model based on AIC and BIC (min values)
+best_aic_spruce = results_spruce_df.loc[results_spruce_df["AIC"].idxmin()]
+best_bic_spruce = results_spruce_df.loc[results_spruce_df["BIC"].idxmin()]
+
+print("Best model for Spruce by AIC:")
+print(best_aic_spruce)
+print("Best model for Spruce by BIC:")
+print(best_bic_spruce)
+
+# Birch logs: Birch: p=0,1; d=1, q=0; P=0,1; D=1, s=12, Q=1
+# Define (p.d.q)(P, D, Q, s) values
+p_birch = [0,1]
+d_birch = 1
+q_birch = [0]
+P_birch = [0,1]
+D= 1
+Q =1
+s =12
+
+results_birch = []
+
+d= d_birch
+for p in p_birch:
+    for q in q_birch:
+        for P in P_birch:
+            try:
+                model = SARIMAX(log_diff["Birch logs"],
+                                order =(p,d,q),
+                                seasonal_order = (P,D,Q,s),
+                                enforce_stationarity = False,
+                                enforce_invertibility =False)
+                fit = model.fit(disp=False)
+                results_birch.append({"order": (p,d,q),
+                                     "seasonal_order": (P,D,Q,s),
+                                     "AIC": fit.aic,
+                                     "BIC": fit.bic})
+            except Exception as e:
+                results_birch.append({"order": (p,d,q),
+                                     "seasonal_order": (P,D,Q,s),
+                                     "AIC": np.nan,
+                                     "BIC": np.nan,
+                                     "Error": str(e)})
+results_birch_df =pd.DataFrame(results_birch)
+print(tabulate(results_birch_df, headers="keys", tablefmt="github"))
+
+# Find the best model based on AIC and BIC (min values)
+best_aic_birch = results_birch_df.loc[results_birch_df["AIC"].idxmin()]
+best_bic_birch = results_birch_df.loc[results_birch_df["BIC"].idxmin()]
+
+print("Best model for Birch by AIC:")
+print(best_aic_birch)
+print("Best model for Birch by BIC:")
+print(best_bic_birch)
+
+## --------------------- Evaluate each log with SARIMA order ------------------------------##
+# MAE and RMSE
 forecast_horizon = 12
+
+# Define best model orders
+orders = {"Pine logs": {"order": (1, 1, 1), "seasonal_order": (1, 1, 1, 12)},
+          "Spruce logs": {"order": (1, 1, 1), "seasonal_order": (1, 1, 1, 12)},
+          "Birch logs": {"order": (1, 1, 0), "seasonal_order": (0, 1, 1, 12)}}
+
+forecast_metrics = []
+
+# Evaluate each log type
+for log_type, params in orders.items():
+    series = log_diff[log_type].dropna()
+    model = SARIMAX(series, order=params["order"], seasonal_order=params["seasonal_order"],
+                    enforce_stationarity=False, enforce_invertibility=False)
+    fit = model.fit(disp=False)
+    forecast = fit.forecast(steps=forecast_horizon)
+
+    # Get true values for comparison
+    actual = series[-forecast_horizon:]
+    forecast = forecast[:len(actual)]
+
+    # Calculate error metrics
+    mae = mean_absolute_error(actual, forecast)
+    rmse = math.sqrt(mean_squared_error(actual, forecast))
+
+    forecast_metrics.append({"Tree Species": log_type,
+                             "MAE": mae,"RMSE": rmse})
+
+forecast_metrics_df = pd.DataFrame(forecast_metrics)
+print(tabulate(forecast_metrics_df, headers="keys", tablefmt="github"))
+
+# Cross validation with 3-month horizons
+# Rolling forecast origin
+def rolling_cv_rmse(series, order, seasonal_order, forecast_horizon=3, folds=3):
+    rmses = []
+    n = len(series)
+    split_point = n - forecast_horizon * folds
+
+    for i in range(folds):
+        train_end = split_point + i * forecast_horizon
+        train = series.iloc[:train_end]
+        test = series.iloc[train_end:train_end + forecast_horizon]
+
+        try:
+            model = SARIMAX(train,
+                            order=order,
+                            seasonal_order=seasonal_order,
+                            enforce_stationarity=False,
+                            enforce_invertibility=False)
+            fit = model.fit(disp=False)
+            forecast = fit.forecast(steps=forecast_horizon)
+            rmse = mean_squared_error(test, forecast, squared=False)
+            rmses.append(rmse)
+        except Exception as e:
+            print(f"Error in fold {i+1}: {e}")
+            rmses.append(np.nan)
+    
+    return rmses
+
+pine_rmse_cv = rolling_cv_rmse(series=log_diff["Pine logs"],
+                               order=(1, 1, 1),
+                               seasonal_order=(1, 1, 1, 12),
+                               forecast_horizon=3,
+                               folds=3)
+print("Pine logs CV RMSE:", pine_rmse_cv)
+
+spruce_rmse_cv = rolling_cv_rmse(series=log_diff["Spruce logs"],
+                               order=(1, 1, 1),
+                               seasonal_order=(1, 1, 1, 12),
+                               forecast_horizon=3,
+                               folds=3)
+print("Spruce logs CV RMSE:", spruce_rmse_cv)
+
+birch_rmse_cv = rolling_cv_rmse(series=log_diff["Birch logs"],
+                               order=(1, 1, 0),
+                               seasonal_order=(0, 1, 1, 12),
+                               forecast_horizon=3,
+                               folds=3)
+print("Birch logs CV RMSE:", birch_rmse_cv)
+
+# Merge CV results
+cv_results = {"Tree Species": ["Pine logs", "Spruce logs", "Birch logs"],
+              "CV RMSE Fold 1": [pine_rmse_cv[0], spruce_rmse_cv[0], birch_rmse_cv[0]],
+              "CV RMSE Fold 2": [pine_rmse_cv[1], spruce_rmse_cv[1], birch_rmse_cv[1]],
+              "CV RMSE Fold 3": [pine_rmse_cv[2], spruce_rmse_cv[2], birch_rmse_cv[2]],
+              "CV RMSE Mean": [np.mean(pine_rmse_cv), 
+                               np.mean(spruce_rmse_cv), 
+                               np.mean(birch_rmse_cv)],
+              "CV RMSE Std": [np.std(pine_rmse_cv), 
+                               np.std(spruce_rmse_cv), 
+                               np.std(birch_rmse_cv)]}
+
+cv_results_df = pd.DataFrame(cv_results)
+print(tabulate(cv_results_df, headers="keys", tablefmt="github"))
+
+species = cv_results_df["Tree Species"]
+means = cv_results_df["CV RMSE Mean"]
+stds = cv_results_df["CV RMSE Std"]
+
+plt.figure(figsize=(8,5))
+bars = plt.bar(species, means, yerr=stds, capsize=8, label="Mean RMSE")
+plt.ylabel("CV RMSE")
+plt.title("Cross-Validation RMSE with Standard Deviation")
+plt.grid(axis="y", linestyle="--", alpha=0.7)
+plt.legend(["Mean RMSE ± Std (error bar)"], loc="upper left")
+
+for bar, mean in zip(bars, means):
+    yval = bar.get_height()
+    plt.text(bar.get_x() + bar.get_width()/2, yval + 0.001, f"{mean:.4f}", ha='center', va='bottom')
+plt.tight_layout()
+
+## -------------------------- Forecasting -------------------------##
+# Forecasting 
 confidence_level = 0.95
 
-# Save results for SARIMA mode
-forecast_sarima ={}
+# Pine logs
+model_pine = SARIMAX(log_diff["Pine logs"],
+                     order=(1, 1, 1),
+                     seasonal_order=(1, 1, 1, 12),
+                     enforce_stationarity=False,
+                     enforce_invertibility=False)
+fit_pine = model_pine.fit(disp=False)
 
-for column in log_diff.columns:
-    series_sarima = log_diff[column].dropna()
-    
-    best_model_sarima = None
-    best_aic_sarima = np.inf
-    best_result_sarima = {}
-    
-    # Seasonal values of (12,4,1)
-    for m in [12, 4, 1]:
-        try:
-            model_sarima = auto_arima(
-                series_sarima,
-                seasonal = True,
-                m = m,
-                stepwise=True,
-                suppress_warnings= True,
-                error_action='ignore',
-                trace = False)
-            if model_sarima.aic() < best_aic_sarima:
-                forecast, conf_int = model_sarima.predict(n_periods = forecast_horizon, return_conf_int=True, alpha=1 - confidence_level)
-                best_model_sarima = model_sarima
-                best_aic_sarima = model_sarima.aic()
-                best_result_sarima = {
-                    "SARIMA forecast": forecast,
-                    "conf_int": conf_int,
-                    "SARIMA mode": model_sarima}
-        except Exception as e:
-            continue
-    # Save results
-    forecast_sarima[column] = best_result_sarima
-    
-    # Plot forecast
-    forecast_sarima_index = pd.date_range(start=series_sarima.index[-1], periods=forecast_horizon + 1, freq="MS")[1:]
-    plt.figure(figsize=(10, 5))
-    plt.plot(series_sarima.index, series_sarima, label="Historical")
-    plt.plot(forecast_sarima_index, best_result_sarima["SARIMA forecast"], label="SARIMA Forecast", linestyle="--")
-    plt.fill_between(forecast_sarima_index, best_result_sarima["conf_int"][:, 0], best_result_sarima["conf_int"][:, 1],
-                     color="orange", alpha=0.3, label="95% CI")
-    plt.title(f"SARIMA Forecast for {column}")
-    plt.xlabel("Time")
-    plt.ylabel("Differenced Log Price")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()    
-    
-# Define metric calculation functions
-def calculate_forecast_sarima_accuracy(actual, predicted):
-    mae_sarima = np.mean(np.abs(actual - predicted))
-    rmse_sarima = np.sqrt(np.mean((actual - predicted) ** 2))
-    smape_sarima = 100 * np.mean(2*np.abs(actual - predicted)/(np.abs(actual)+np.abs(predicted)))
-    # For MASE, use naive seasonal difference (lag=12 if possible, else lag=1)
-    if len(actual) >= 13:
-        naive_diff_sarima = np.abs(actual[12:] - actual[:-12])
-    else:
-        naive_diff_sarima = np.abs(actual[1:] - actual[:-1])
-    mase_denom_sarima = np.mean(naive_diff_sarima) if len(naive_diff_sarima) > 0 else np.nan
-    mase_sarima = mae_sarima / mase_denom_sarima if mase_denom_sarima != 0 else np.nan
-    return mae_sarima, rmse_sarima, smape_sarima, mase_sarima
+forecast_result_pine = fit_pine.get_forecast(steps=forecast_horizon)
+forecast_pine = forecast_result_pine.predicted_mean
+conf_int_pine = forecast_result_pine.conf_int(alpha=1-confidence_level)
 
-# Store model summary and forecast accuracy
-model_sarima_metrics = []
+# Fix index: forecast time should be monthly steps
+last_date = log_diff.index[-1]
+forecast_index = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=forecast_horizon, freq='MS')
+forecast_pine.index = forecast_index
+conf_int_pine.index = forecast_index
 
-for column, result in forecast_sarima.items():
-    model_sarima = result["SARIMA mode"]
-    forecast = result["SARIMA forecast"]
-    actual = log_diff[column].dropna()
-    # Ensure we align actual and predicted for the last forecast_horizon periods (in-sample evaluation)
-    actual_eval = actual[-forecast_horizon:]
-    forecast_eval = model_sarima.predict_in_sample()[-forecast_horizon:]
-    
-    # Calculate metircs
-    mae_sarima, rmse_sarima, smape_sarima, mase_sarima = calculate_forecast_sarima_accuracy(actual_eval, forecast_eval)
-    
-    model_sarima_metrics.append({
-        "Log Type": column,
-        "AIC": model_sarima.aic(),
-        "BIC": model_sarima.bic(),
-        "Model Order": model_sarima.order,
-        "Seasonal Order": model_sarima.seasonal_order,
-        "MAE": mae_sarima,
-        "RMSE": rmse_sarima,
-        "SMAPE": smape_sarima,
-        "MASE": mase_sarima})
-    
-# Display results as DataFrame
-metrics_model_sarima = pd.DataFrame(model_sarima_metrics)
-print(metrics_model_sarima)
+# Plot with observed data
+plt.figure(figsize=(10, 5))
+plt.plot(log_diff["Pine logs"], label="Historical data", color='steelblue')
+plt.plot(forecast_pine, label="Forecast", color='darkorange')
+plt.fill_between(conf_int_pine.index, conf_int_pine.iloc[:, 0], conf_int_pine.iloc[:, 1],
+                 color='orange', alpha=0.3, label="95% Confidence")
+plt.title("Pine Logs Forecast (SARIMA)")
+plt.xlabel("Time")
+plt.ylabel("Differenced log price")
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.5)
 
-# Cross-validation with 3-month horizons
-# Define SMAPE function 
-def smape_cv(y_true, y_pred):
-    return 100 * np.mean(2 * np.abs(y_pred - y_true) / (np.abs(y_true) + np.abs(y_pred)))
+# Spruce logs
+model_spruce = SARIMAX(log_diff["Spruce logs"],
+                     order=(1, 1, 1),
+                     seasonal_order=(1, 1, 1, 12),
+                     enforce_stationarity=False,
+                     enforce_invertibility=False)
+fit_spruce = model_spruce.fit(disp=False)
 
-# Define SARIMA time-series cross-validation function 
-def time_series_cv_sarima(series_cv_sarima, forecast_horizon_cv_sarima=3, n_folds=3):
-    fold_size_sarima = forecast_horizon_cv_sarima
-    total_len_sarima = len(series_cv_sarima)
-    results_cv_sarima = []
-    
-    for i in range(n_folds):
-        train_end_sarima = total_len_sarima - fold_size_sarima * (n_folds -i)
-        train_sarima = series_cv_sarima[:train_end_sarima]
-        test_sarima = series_cv_sarima[train_end_sarima:train_end_sarima + fold_size_sarima]
-        
-        try:
-            model_cv_sarima = auto_arima(train_sarima, seasonal=True, m=12, stepwise=True, suppress_warnings=True)
-            forecast_cv_sarima = model_cv_sarima.predict(n_periods=forecast_horizon_cv_sarima)
-            mae_cv_sarima = mean_absolute_error(test_sarima, forecast_cv_sarima)
-            rmse_cv_sarima = np.sqrt(mean_squared_error(test_sarima, forecast_cv_sarima))
-            smape_val_cv_sarima = smape_cv(test_sarima, forecast_cv_sarima)
-            results_cv_sarima.append({"Fold": i + 1, "MAE": mae_cv_sarima, "RMSE": rmse_cv_sarima, "SMAPE": smape_val_cv_sarima})
-        except:
-            results_cv_sarima.append({"Fold": i + 1, "MAE": np.nan, "RMSE": np.nan, "SMAPE": np.nan})
+forecast_result_spruce = fit_spruce.get_forecast(steps=forecast_horizon)
+forecast_spruce = forecast_result_spruce.predicted_mean
+conf_int_spruce = forecast_result_spruce.conf_int(alpha=1-confidence_level)
 
-    return pd.DataFrame(results_cv_sarima) 
-            
-# Run CV for all log types
-cv_results_sarima_all = []
-for column in log_diff.columns:
-    series_cv_sarima = log_diff[column].dropna()
-    cv_results_sarima = time_series_cv_sarima(series_cv_sarima)
-    cv_results_sarima["Log Type"] = column
-    cv_results_sarima_all.append(cv_results_sarima)
-    
-# Combine and display results
-cv_sarima = pd.concat(cv_results_sarima_all, ignore_index = True)
-print(cv_sarima)
+# Fix index: forecast time should be monthly steps
+forecast_spruce.index = forecast_index
+conf_int_spruce.index = forecast_index
 
-# Plot cross validation anaylsis for SARIMA mode
-sns.set(style = "whitegrid")
+# Plot with observed data
+plt.figure(figsize=(10, 5))
+plt.plot(log_diff["Spruce logs"], label="Historical data", color='steelblue')
+plt.plot(forecast_spruce, label="Forecast", color='darkorange')
+plt.fill_between(conf_int_spruce.index, conf_int_spruce.iloc[:, 0], conf_int_spruce.iloc[:, 1],
+                 color='orange', alpha=0.3, label="95% Confidence")
+plt.title("Spruce Logs Forecast (SARIMA)")
+plt.xlabel("Time")
+plt.ylabel("Differenced log price")
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.5)
 
-plt.figure(figsize=(10, 6))
-sns.barplot(data=cv_sarima, x="Log Type", y="RMSE", hue="Fold", palette="viridis")
+# Birch logs
+model_birch = SARIMAX(log_diff["Birch logs"],
+                     order=(1, 1, 0),
+                     seasonal_order=(0, 1, 1, 12),
+                     enforce_stationarity=False,
+                     enforce_invertibility=False)
+fit_birch = model_birch.fit(disp=False)
 
-plt.title("Comparison Across Folds for Each Log Type (SARIMA Cross Validation)")
-plt.ylabel("RMSE")
-plt.xlabel("Log Type")
-plt.legend(title="Fold")
-plt.tight_layout()
-plt.show()
-    
+forecast_result_birch = fit_birch.get_forecast(steps=forecast_horizon)
+forecast_birch = forecast_result_birch.predicted_mean
+conf_int_birch = forecast_result_birch.conf_int(alpha=1-confidence_level)
+
+# Fix index: forecast time should be monthly steps
+forecast_birch.index = forecast_index
+conf_int_birch.index = forecast_index
+
+# Plot with observed data
+plt.figure(figsize=(10, 5))
+plt.plot(log_diff["Birch logs"], label="Historical data", color='steelblue')
+plt.plot(forecast_birch, label="Forecast", color='darkorange')
+plt.fill_between(conf_int_birch.index, conf_int_birch.iloc[:, 0], conf_int_birch.iloc[:, 1],
+                 color='orange', alpha=0.3, label="95% Confidence")
+plt.title("Birch Logs Forecast (SARIMA)")
+plt.xlabel("Time")
+plt.ylabel("Differenced log price")
+plt.legend()
+plt.grid(True, linestyle='--', alpha=0.5)
+
