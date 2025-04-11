@@ -28,6 +28,7 @@ statistics_standing_sales = standing_sales.describe()
 print(statistics_standing_sales)
 
 # Time series visualization
+plt.figure(figsize=(10, 5))
 sns.lineplot(data=standing_sales, x = "Time", y = "Pine logs", label="Pine logs")
 sns.lineplot(data=standing_sales, x = "Time", y = "Spruce logs", label="Spruce logs")
 sns.lineplot(data=standing_sales, x = "Time", y = "Birch logs", label="Birch logs")
