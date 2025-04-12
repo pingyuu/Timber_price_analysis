@@ -139,3 +139,5 @@ Figure 8. Prediction of Spruce logs (12 months) with SARIMA (1,1,1)(2,1,1,12)
 ![SARIMA forecasting for birch logs](figures/sarima_birch.png)
 
 Figure 9. Prediction of Birch logs (12 months) with SARIMA (1,1,0)(0,1,1,12)
+
+This project is open-source and licensed under the MIT License.
