@@ -143,7 +143,7 @@ Figure 8. Prediction of Spruce logs (12 months) with SARIMA (1,1,1)(2,1,1,12)
 Figure 9. Prediction of Birch logs (12 months) with SARIMA (1,1,0)(0,1,1,12)
 
 ### 8. Conclusion
-This analysis demonstrates the effectiveness of SARIMA models in forecasting monthly timber prices with clear seasonal components. Pine and spruce logs showed better predictability, with lower forecast errors and more stable patterns. Birch logs exhibited higher volatility, leading to increased uncertainty in forecasts. These findings suggest species-specific modeling strategies may be necessary when applying predictive analytics in forestry-related markets.
+SARIMA models effectively captured seasonal and trend patterns in Finnish timber prices. Forecasts for pine and spruce logs showed consistent accuracy and lower variability, while birch prices proved harder to predict. These findings support the use of SARIMA in forestry economics and highlight species-specific market behaviors.
 
 This project is open-source and licensed under the MIT License.
 
