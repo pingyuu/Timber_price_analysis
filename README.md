@@ -1,6 +1,8 @@
 # Forestry Project: Forecasting Timber Prices in Finland Using SARIMA 
 ## Abstract
 This project analyzes monthly stumpage prices of pine, spruce, and birch logs in Finland (1995–2025). After transforming and validating stationarity, SARIMA models were used to forecast timber prices. Model accuracy was assessed with MAE, RMSE, and rolling cross validation. Results show pine and spruce prices are more predictable than birch, offering insights into market dynamics.
+## Project objective
+This project aims to model and forecast monthly timber prices in Finland using SARIMA, focusing on differences in predictability across pine, spruce, and birch logs.
 ## Analysis workflow
 ### 1. Data overview and preparation
 
@@ -140,4 +142,8 @@ Figure 8. Prediction of Spruce logs (12 months) with SARIMA (1,1,1)(2,1,1,12)
 
 Figure 9. Prediction of Birch logs (12 months) with SARIMA (1,1,0)(0,1,1,12)
 
+### 8. Conclusion
+This analysis demonstrates the effectiveness of SARIMA models in forecasting monthly timber prices with clear seasonal components. Pine and spruce logs showed better predictability, with lower forecast errors and more stable patterns. Birch logs exhibited higher volatility, leading to increased uncertainty in forecasts. These findings suggest species-specific modeling strategies may be necessary when applying predictive analytics in forestry-related markets.
+
 This project is open-source and licensed under the MIT License.
+
