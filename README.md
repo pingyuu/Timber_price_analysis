@@ -44,20 +44,20 @@ Figure 4. Seasonal decomposition of Birch logs
 Stationarity of each log series is assessed using both ADF and KPSS tests. The ADF p-values are all greater than 0.05, while KPSS p-values are all below 0.05, that indicating non-stationarity. Therefore, log transformation and first order differencing are applied to stablize variance and remove trends before time series modeling.
 
 Table 2. Results of ADF and KPSS tests for original dataset
-|    | Log Type    |   ADF p-value |   KPSS p-value |
-|----|-------------|---------------|----------------|
-|  0 | Pine logs   |      0.851264 |      0.01      |
-|  1 | Spruce logs |      0.873122 |      0.01      |
-|  2 | Birch logs  |      0.465123 |      0.0148953 |
+| Log Type    |   ADF p-value |   KPSS p-value |
+|-------------|---------------|----------------|
+| Pine logs   |      0.851264 |      0.01      |
+| Spruce logs |      0.873122 |      0.01      |
+| Birch logs  |      0.465123 |      0.0148953 |
 
 After applying log transformation and first order differencing, all logs passed the stationarity tests (ADF p-values < 0.05, KPSS p-values > 0.05). 
 
 Table 3. Results of ADF and KPSS tests for log transformation and first differencing
-|    | Log Type    |   ADF p-value |   KPSS p-value |
-|----|-------------|---------------|----------------|
-|  0 | Pine logs   |   1.61115e-06 |            0.1 |
-|  1 | Spruce logs |   6.84161e-07 |            0.1 |
-|  2 | Birch logs  |   8.19692e-05 |            0.1 |
+| Log Type    |   ADF p-value |   KPSS p-value |
+|-------------|---------------|----------------|
+| Pine logs   |   1.61115e-06 |            0.1 |
+| Spruce logs |   6.84161e-07 |            0.1 |
+| Birch logs  |   8.19692e-05 |            0.1 |
 
 ### 4. ACF and PACF 
 Based on the ACF and PACF plots after first differencing, candidate SARIMA model orders were selected for each tree species. For pine logs, AR terms p=[1,5,7] and MA terms q=[1,2] were considered, with seasonal AR P=[1,2]. For spruce logs, p=[1,7], q=[1,2,7], and P=[2,3] were tested. For birch logs, more conservative values p=[0,1], q=0, and P∈[0,1] were chosen. All models used d=1, D=1, Q=1, and seasonality s=12.
@@ -68,61 +68,61 @@ Figure 5. ACF and PACF visualization after first differencing
 The optimal SARIMA model for each log type was selected based on the lowest AIC and BIC values. For pine logs, the best model was (1, 1, 1)(1, 1, 1, 12), achieving the lowest AIC (−1786.39) and BIC (−1767.33). For spruce logs, although the model (1, 1, 7)(2, 1, 1, 12) had the lowest AIC (−1733.12), it included a high MA term (q=7). To maintain parsimony, we selected the next best model (1, 1, 1)(2, 1, 1, 12) with AIC −1722.78 and BIC −1705.18. For birch logs, the lowest AIC and BIC were both achieved by (1, 1, 0)(0, 1, 1, 12), making it the final selected model.
 
 Table 4. Results of AIC and BIC for pine logs with different orders
-|    | order     | seasonal_order   |      AIC |      BIC |
-|----|-----------|------------------|----------|----------|
-|  0 | (1, 1, 1) | (1, 1, 1, 12)    | -1786.39 | -1767.33 |
-|  1 | (1, 1, 1) | (2, 1, 1, 12)    | -1714.33 | -1691.66 |
-|  2 | (1, 1, 2) | (1, 1, 1, 12)    | -1779.16 | -1756.31 |
-|  3 | (1, 1, 2) | (2, 1, 1, 12)    | -1689.2  | -1662.76 |
-|  4 | (5, 1, 1) | (1, 1, 1, 12)    | -1736.19 | -1701.97 |
-|  5 | (5, 1, 1) | (2, 1, 1, 12)    | -1668.32 | -1630.67 |
-|  6 | (5, 1, 2) | (1, 1, 1, 12)    | -1713.08 | -1675.06 |
-|  7 | (5, 1, 2) | (2, 1, 1, 12)    | -1621.46 | -1580.04 |
-|  8 | (7, 1, 1) | (1, 1, 1, 12)    | -1737.77 | -1696.01 |
-|  9 | (7, 1, 1) | (2, 1, 1, 12)    | -1671.79 | -1626.68 |
-| 10 | (7, 1, 2) | (1, 1, 1, 12)    | -1749.36 | -1703.81 |
-| 11 | (7, 1, 2) | (2, 1, 1, 12)    | -1684.53 | -1635.67 |
+| order     | seasonal_order   |      AIC |      BIC |
+|-----------|------------------|----------|----------|
+| (1, 1, 1) | (1, 1, 1, 12)    | -1786.39 | -1767.33 |
+| (1, 1, 1) | (2, 1, 1, 12)    | -1714.33 | -1691.66 |
+| (1, 1, 2) | (1, 1, 1, 12)    | -1779.16 | -1756.31 |
+| (1, 1, 2) | (2, 1, 1, 12)    | -1689.2  | -1662.76 |
+| (5, 1, 1) | (1, 1, 1, 12)    | -1736.19 | -1701.97 |
+| (5, 1, 1) | (2, 1, 1, 12)    | -1668.32 | -1630.67 |
+| (5, 1, 2) | (1, 1, 1, 12)    | -1713.08 | -1675.06 |
+| (5, 1, 2) | (2, 1, 1, 12)    | -1621.46 | -1580.04 |
+| (7, 1, 1) | (1, 1, 1, 12)    | -1737.77 | -1696.01 |
+| (7, 1, 1) | (2, 1, 1, 12)    | -1671.79 | -1626.68 |
+| (7, 1, 2) | (1, 1, 1, 12)    | -1749.36 | -1703.81 |
+| (7, 1, 2) | (2, 1, 1, 12)    | -1684.53 | -1635.67 |
 
 Table 5. Results of AIC and BIC for spruce logs with different orders
-|    | order     | seasonal_order   |      AIC |      BIC |
-|----|-----------|------------------|----------|----------|
-|  0 | (1, 1, 1) | (2, 1, 1, 12)    | -1733.12 | -1710.45 |
-|  1 | (1, 1, 1) | (3, 1, 1, 12)    | -1657.38 | -1631.2  |
-|  2 | (1, 1, 2) | (2, 1, 1, 12)    | -1720.72 | -1694.28 |
-|  3 | (1, 1, 2) | (3, 1, 1, 12)    | -1649.15 | -1619.23 |
-|  4 | (1, 1, 7) | (2, 1, 1, 12)    | -1735.34 | -1690.01 |
-|  5 | (1, 1, 7) | (3, 1, 1, 12)    | -1658.17 | -1609.56 |
-|  6 | (7, 1, 1) | (2, 1, 1, 12)    | -1622.75 | -1577.64 |
-|  7 | (7, 1, 1) | (3, 1, 1, 12)    | -1601.37 | -1553    |
-|  8 | (7, 1, 2) | (2, 1, 1, 12)    | -1693.04 | -1644.18 |
-|  9 | (7, 1, 2) | (3, 1, 1, 12)    | -1612.97 | -1560.88 |
-| 10 | (7, 1, 7) | (2, 1, 1, 12)    | -1687.91 | -1620.25 |
-| 11 | (7, 1, 7) | (3, 1, 1, 12)    | -1612.72 | -1542.04 |
+| order     | seasonal_order   |      AIC |      BIC |
+|-----------|------------------|----------|----------|
+| (1, 1, 1) | (2, 1, 1, 12)    | -1733.12 | -1710.45 |
+| (1, 1, 1) | (3, 1, 1, 12)    | -1657.38 | -1631.2  |
+| (1, 1, 2) | (2, 1, 1, 12)    | -1720.72 | -1694.28 |
+| (1, 1, 2) | (3, 1, 1, 12)    | -1649.15 | -1619.23 |
+| (1, 1, 7) | (2, 1, 1, 12)    | -1735.34 | -1690.01 |
+| (1, 1, 7) | (3, 1, 1, 12)    | -1658.17 | -1609.56 |
+| (7, 1, 1) | (2, 1, 1, 12)    | -1622.75 | -1577.64 |
+| (7, 1, 1) | (3, 1, 1, 12)    | -1601.37 | -1553    |
+| (7, 1, 2) | (2, 1, 1, 12)    | -1693.04 | -1644.18 |
+| (7, 1, 2) | (3, 1, 1, 12)    | -1612.97 | -1560.88 |
+| (7, 1, 7) | (2, 1, 1, 12)    | -1687.91 | -1620.25 |
+| (7, 1, 7) | (3, 1, 1, 12)    | -1612.72 | -1542.04 |
 
 Table 6. Results of AIC and BIC for birch logs with different orders
-|    | order     | seasonal_order   |      AIC |      BIC |
-|----|-----------|------------------|----------|----------|
-|  0 | (0, 1, 0) | (0, 1, 1, 12)    | -1501.44 | -1493.81 |
-|  1 | (0, 1, 0) | (1, 1, 1, 12)    | -1486.3  | -1474.86 |
-|  2 | (1, 1, 0) | (0, 1, 1, 12)    | -1609.97 | -1598.53 |
-|  3 | (1, 1, 0) | (1, 1, 1, 12)    | -1607.71 | -1592.45 |
+| order     | seasonal_order   |      AIC |      BIC |
+|-----------|------------------|----------|----------|
+| (0, 1, 0) | (0, 1, 1, 12)    | -1501.44 | -1493.81 |
+| (0, 1, 0) | (1, 1, 1, 12)    | -1486.3  | -1474.86 |
+| (1, 1, 0) | (0, 1, 1, 12)    | -1609.97 | -1598.53 |
+| (1, 1, 0) | (1, 1, 1, 12)    | -1607.71 | -1592.45 |
 
 ### 6. Model evaluation
 The evaluation results are consistent across both direct error evaluation and rolling forecast cross validation. Pine and Spruce logs exhibited comparable and relatively low forecasting errors, as indicated by both RMSE and MAE metrics. Pine logs had the lowest MAE (0.0086), while Spruce logs had the lowest CV RMSE mean (0.0051). Birch logs, on the other hand, showed the highest error levels and variability, suggesting more uncertainty in forecasting their prices.
 
 Table 7. MAE and RMSE results of SARIMA model
-|    | Tree Species   |        MAE |      RMSE |
-|----|----------------|------------|-----------|
-|  0 | Pine logs      | 0.00863059 | 0.0122147 |
-|  1 | Spruce logs    | 0.00835632 | 0.0122657 |
-|  2 | Birch logs     | 0.00990322 | 0.0128179 |
+| Tree Species   |        MAE |      RMSE |
+|----------------|------------|-----------|
+| Pine logs      | 0.00863059 | 0.0122147 |
+| Spruce logs    | 0.00835632 | 0.0122657 |
+| Birch logs     | 0.00990322 | 0.0128179 |
 
 Table 8. RMSE results of cross validatation with fold = 3
-|    | Tree Species   |   CV RMSE Fold 1 |   CV RMSE Fold 2 |   CV RMSE Fold 3 |   CV RMSE Mean |   CV RMSE Std |
-|----|----------------|------------------|------------------|------------------|----------------|---------------|
-|  0 | Pine logs      |       0.00761214 |       0.00430703 |       0.00690652 |     0.00627523 |    0.00142123 |
-|  1 | Spruce logs    |       0.0066258  |       0.00247351 |       0.00620317 |     0.00510083 |    0.00186579 |
-|  2 | Birch logs     |       0.0278146  |       0.0139254  |       0.0124439  |     0.0180613  |    0.00692312 |
+| Tree Species   |   CV RMSE Fold 1 |   CV RMSE Fold 2 |   CV RMSE Fold 3 |   CV RMSE Mean |   CV RMSE Std |
+|----------------|------------------|------------------|------------------|----------------|---------------|
+| Pine logs      |       0.00761214 |       0.00430703 |       0.00690652 |     0.00627523 |    0.00142123 |
+| Spruce logs    |       0.0066258  |       0.00247351 |       0.00620317 |     0.00510083 |    0.00186579 |
+| Birch logs     |       0.0278146  |       0.0139254  |       0.0124439  |     0.0180613  |    0.00692312 |
 
 ![Cross validation RMSE](figures/CV_sarima.png)
 
